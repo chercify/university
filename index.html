@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Passeport Académique — Dossier de candidature</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --ink: #16233F;
+            --ink-2: #0F1930;
+            --paper: #ECE6D6;
+            --paper-light: #F6F2E7;
+            --burgundy: #8C1D2B;
+            --burgundy-dark: #6E1520;
+            --gold: #B08D3D;
+            --gold-light: #D8BE79;
+            --text-dark: #1C2333;
+            --text-muted: #5B5F6B;
+            --text-light: #F5F0E3;
+            --ok: #2E6B4F;
+            --err: #8C1D2B;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--ink-2);
+            background-image:
+                radial-gradient(circle at 15% 10%, rgba(176, 141, 61, 0.10), transparent 40%),
+                radial-gradient(circle at 85% 90%, rgba(140, 29, 43, 0.14), transparent 45%);
+            font-family: 'Inter', sans-serif;
+            color: var(--text-dark);
+            min-height: 100vh;
+            padding: 40px 16px 64px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .passport {
+            width: 100%;
+            max-width: 640px;
+        }
+
+        /* ---- Cover / letterhead ---- */
+        .cover {
+            background: linear-gradient(160deg, var(--ink) 0%, var(--ink-2) 100%);
+            border-radius: 14px 14px 0 0;
+            padding: 38px 34px 46px;
+            color: var(--text-light);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(176, 141, 61, 0.35);
+            border-bottom: none;
+        }
+
+        .cover::before {
+            content: "";
+            position: absolute;
+            inset: 8px;
+            border: 1px solid rgba(245, 240, 227, 0.16);
+            border-radius: 8px;
+            pointer-events: none;
+        }
+
+        .eyebrow {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: var(--gold);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .eyebrow::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: rgba(176, 141, 61, 0.5);
+        }
+
+        h1 {
+            font-family: 'Fraunces', serif;
+            font-weight: 600;
+            font-size: clamp(28px, 5vw, 38px);
+            line-height: 1.08;
+            margin: 0 0 10px;
+        }
+
+        .cover p.sub {
+            margin: 0;
+            font-size: 14px;
+            color: rgba(245, 240, 227, 0.72);
+            max-width: 44ch;
+            line-height: 1.5;
+        }
+
+        .seal {
+            position: absolute;
+            right: -18px;
+            top: -18px;
+            width: 130px;
+            height: 130px;
+            opacity: 0.9;
+        }
+
+        /* ---- Perforation between cover and body ---- */
+        .perf {
+            height: 0;
+            border-top: 2px dashed rgba(28, 35, 51, 0.25);
+            position: relative;
+            background: var(--paper);
+        }
+
+        .perf::before,
+        .perf::after {
+            content: "";
+            position: absolute;
+            top: -9px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--ink-2);
+        }
+
+        .perf::before {
+            left: -9px;
+        }
+
+        .perf::after {
+            right: -9px;
+        }
+
+        /* ---- Body / pages ---- */
+        .pages {
+            background: var(--paper);
+            border: 1px solid rgba(28, 35, 51, 0.12);
+            border-top: none;
+            border-radius: 0 0 14px 14px;
+            padding: 6px 34px 40px;
+        }
+
+        .stamp-row {
+            display: flex;
+            gap: 6px;
+            padding: 18px 0 10px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            color: var(--text-muted);
+        }
+
+        .stamp-row span {
+            padding: 3px 9px;
+            border: 1px solid rgba(28, 35, 51, 0.2);
+            border-radius: 100px;
+            background: var(--paper-light);
+        }
+
+        .stamp-row span.active {
+            border-color: var(--burgundy);
+            color: var(--burgundy);
+            background: rgba(140, 29, 43, 0.06);
+        }
+
+        section.block {
+            margin-top: 22px;
+        }
+
+        .block-title {
+            font-family: 'Fraunces', serif;
+            font-weight: 600;
+            font-size: 19px;
+            margin: 0 0 4px;
+            color: var(--ink);
+        }
+
+        .block-hint {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11.5px;
+            color: var(--text-muted);
+            margin: 0 0 16px;
+            letter-spacing: 0.02em;
+        }
+
+        .field {
+            margin-bottom: 16px;
+        }
+
+        .field label {
+            display: block;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 10.5px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .field input,
+        .field select,
+        .field textarea {
+            width: 100%;
+            font-family: 'Inter', sans-serif;
+            font-size: 15px;
+            padding: 11px 13px;
+            border: 1.4px solid rgba(28, 35, 51, 0.22);
+            border-radius: 7px;
+            background: var(--paper-light);
+            color: var(--text-dark);
+            outline: none;
+            transition: border-color .15s ease, box-shadow .15s ease;
+            appearance: none;
+        }
+
+        .field select {
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='9'><path d='M1 1l6 6 6-6' stroke='%235B5F6B' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            padding-right: 36px;
+        }
+
+        .field textarea {
+            resize: vertical;
+            min-height: 90px;
+        }
+
+        .field input:focus,
+        .field select:focus,
+        .field textarea:focus {
+            border-color: var(--burgundy);
+            box-shadow: 0 0 0 3px rgba(140, 29, 43, 0.12);
+        }
+
+        .field select:disabled,
+        .field input:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+
+        @media (max-width:520px) {
+            .two-col {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .status-line {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11.5px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 18px;
+            margin-top: -6px;
+            margin-bottom: 14px;
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--gold);
+            animation: pulse 1s infinite ease-in-out;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 0.3;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+
+        .status-line.ok {
+            color: var(--ok);
+        }
+
+        .status-line.ok .dot {
+            background: var(--ok);
+            animation: none;
+        }
+
+        .status-line.err {
+            color: var(--err);
+        }
+
+        .status-line.err .dot {
+            background: var(--err);
+            animation: none;
+        }
+
+        .uni-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 230px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .uni-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px 12px;
+            border: 1.4px solid rgba(28, 35, 51, 0.14);
+            border-radius: 7px;
+            background: var(--paper-light);
+            cursor: pointer;
+            transition: border-color .12s ease, background .12s ease;
+        }
+
+        .uni-item:hover {
+            border-color: rgba(140, 29, 43, 0.45);
+        }
+
+        .uni-item input {
+            margin-top: 3px;
+            accent-color: var(--burgundy);
+        }
+
+        .uni-item .uni-name {
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1.35;
+        }
+
+        .uni-item .uni-site {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 10.5px;
+            color: var(--text-muted);
+        }
+
+        .uni-item.selected {
+            border-color: var(--burgundy);
+            background: rgba(140, 29, 43, 0.06);
+        }
+
+        .submit-btn {
+            width: 100%;
+            margin-top: 26px;
+            padding: 15px 18px;
+            border: none;
+            border-radius: 8px;
+            background: var(--burgundy);
+            color: var(--text-light);
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12.5px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: background .15s ease, transform .1s ease;
+        }
+
+        .submit-btn:hover {
+            background: var(--burgundy-dark);
+        }
+
+        .submit-btn:active {
+            transform: scale(0.99);
+        }
+
+        .submit-btn:disabled {
+            background: #9a9a9a;
+            cursor: not-allowed;
+        }
+
+        .confirmation {
+            display: none;
+            margin-top: 22px;
+            padding: 22px;
+            border: 1.6px solid var(--ok);
+            border-radius: 9px;
+            background: rgba(46, 107, 79, 0.07);
+            text-align: center;
+        }
+
+        .confirmation.show {
+            display: block;
+        }
+
+        .confirmation .seal-mini {
+            width: 52px;
+            height: 52px;
+            margin: 0 auto 10px;
+        }
+
+        .confirmation h3 {
+            font-family: 'Fraunces', serif;
+            margin: 0 0 6px;
+            color: var(--ok);
+            font-size: 19px;
+        }
+
+        .confirmation p {
+            margin: 0;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .footnote {
+            text-align: center;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 10px;
+            letter-spacing: 0.08em;
+            color: rgba(245, 240, 227, 0.4);
+            margin-top: 18px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="passport">
+
+        <div class="cover">
+            <svg class="seal" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <circle cx="50" cy="50" r="42" fill="none" stroke="#B08D3D" stroke-width="1.4" opacity="0.85" />
+                <circle cx="50" cy="50" r="34" fill="none" stroke="#B08D3D" stroke-width="0.8" stroke-dasharray="2 3"
+                    opacity="0.7" />
+                <text x="50" y="46" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="7"
+                    fill="#B08D3D" letter-spacing="1">DOSSIER</text>
+                <text x="50" y="58" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="7"
+                    fill="#B08D3D" letter-spacing="1">ACADÉMIQUE</text>
+            </svg>
+            <div class="eyebrow">Dossier N° — candidature internationale</div>
+            <h1>Passeport&nbsp;Académique</h1>
+            <p class="sub">Renseignez votre profil, choisissez votre pays de destination, puis sélectionnez l'université
+                visée. Votre dossier est transmis directement au registre.</p>
+        </div>
+
+        <div class="perf"></div>
+
+        <div class="pages">
+            <div class="stamp-row">
+                <span id="stamp-1" class="active">01 — Identité</span>
+                <span id="stamp-2">02 — Destination</span>
+                <span id="stamp-3">03 — Université</span>
+            </div>
+
+            <form id="candidature-form">
+
+                <section class="block">
+                    <h2 class="block-title">Identité du candidat</h2>
+                    <p class="block-hint">// informations personnelles</p>
+
+                    <div class="two-col">
+                        <div class="field">
+                            <label for="nom">Nom</label>
+                            <input type="text" id="nom" name="Nom" required autocomplete="family-name">
+                        </div>
+                        <div class="field">
+                            <label for="prenom">Prénom</label>
+                            <input type="text" id="prenom" name="Prenom" required autocomplete="given-name">
+                        </div>
+                    </div>
+
+                    <div class="two-col">
+                        <div class="field">
+                            <label for="email">E-mail</label>
+                            <input type="email" id="email" name="Email" required autocomplete="email">
+                        </div>
+                        <div class="field">
+                            <label for="telephone">Téléphone</label>
+                            <input type="tel" id="telephone" name="Telephone" placeholder="+257 ..." required>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="block">
+                    <h2 class="block-title">Pays de destination</h2>
+                    <p class="block-hint">// le registre des universités se met à jour selon votre choix</p>
+
+                    <div class="field">
+                        <label for="pays">Pays</label>
+                        <select id="pays" name="Pays" required disabled>
+                            <option value="">Chargement du registre des pays…</option>
+                        </select>
+                    </div>
+                    <div id="pays-status" class="status-line"><span class="dot"></span> connexion au registre des pays…
+                    </div>
+                </section>
+
+                <section class="block" id="section-universites" style="display:none;">
+                    <h2 class="block-title">Université</h2>
+                    <p class="block-hint">// sélectionnez l'établissement visé dans le pays choisi</p>
+
+                    <div id="uni-status" class="status-line"></div>
+                    <div id="uni-list" class="uni-list"></div>
+                    <input type="hidden" id="universite-nom" name="Universite">
+                    <input type="hidden" id="universite-site" name="SiteUniversite">
+                </section>
+
+                <section class="block" id="section-message" style="display:none;">
+                    <h2 class="block-title">Motivation</h2>
+                    <p class="block-hint">// facultatif — quelques lignes sur votre projet</p>
+                    <div class="field">
+                        <label for="message">Message</label>
+                        <textarea id="message" name="Message"
+                            placeholder="Filière visée, motivation, disponibilités…"></textarea>
+                    </div>
+                </section>
+
+                <button type="submit" id="submit-btn" class="submit-btn" disabled>Sceller et soumettre le
+                    dossier</button>
+            </form>
+
+            <div id="confirmation" class="confirmation">
+                <svg class="seal-mini" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="42" fill="none" stroke="#2E6B4F" stroke-width="3" />
+                    <path d="M32 52l13 13 24-28" fill="none" stroke="#2E6B4F" stroke-width="5" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </svg>
+                <h3>Dossier enregistré</h3>
+                <p>Votre candidature a été transmise au registre. Vous serez recontacté par e-mail.</p>
+            </div>
+        </div>
+
+        <p class="footnote">Passeport Académique — transmis de manière sécurisée vers le registre Google Sheets</p>
+    </div>
+
+    <!-- iframe caché : évite les blocages CORS lors de l'envoi vers Google Apps Script -->
+    <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
+
+    <script>
+        // ============================================================
+        // CONFIGURATION — à remplacer par l'URL de votre Web App
+        // Google Apps Script (voir le fichier google-apps-script.js
+        // fourni séparément pour le code à déployer côté Google Sheets)
+        // ============================================================
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw95lIFA4m5aMRq_1qK14NbGueV01U7E6hnSw0zG2FR0s7TBvkUzhRf5-YV3LmRIHjteg/exec";
+
+        const paysSelect = document.getElementById('pays');
+        const paysStatus = document.getElementById('pays-status');
+        const sectionUnis = document.getElementById('section-universites');
+        const sectionMessage = document.getElementById('section-message');
+        const uniStatus = document.getElementById('uni-status');
+        const uniList = document.getElementById('uni-list');
+        const uniNomInput = document.getElementById('universite-nom');
+        const uniSiteInput = document.getElementById('universite-site');
+        const submitBtn = document.getElementById('submit-btn');
+        const form = document.getElementById('candidature-form');
+        const stamp1 = document.getElementById('stamp-1');
+        const stamp2 = document.getElementById('stamp-2');
+        const stamp3 = document.getElementById('stamp-3');
+        const confirmation = document.getElementById('confirmation');
+
+        // ---- 1. Charger la liste des pays (REST Countries API) ----
+        async function chargerPays() {
+            try {
+                const res = await fetch('https://restcountries.com/v3.1/all?fields=name,cca2,translations');
+                if (!res.ok) throw new Error('Réponse API invalide');
+                const data = await res.json();
+
+                const pays = data.map(p => ({
+                    valeur: p.name.common,                          // utilisé pour interroger l'API universités
+                    libelle: (p.translations && p.translations.fra && p.translations.fra.common) || p.name.common
+                })).sort((a, b) => a.libelle.localeCompare(b.libelle, 'fr'));
+
+                paysSelect.innerHTML = '<option value="">— Sélectionnez un pays —</option>';
+                pays.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p.valeur;
+                    opt.textContent = p.libelle;
+                    paysSelect.appendChild(opt);
+                });
+
+                paysSelect.disabled = false;
+                paysStatus.classList.add('ok');
+                paysStatus.innerHTML = '<span class="dot"></span> registre des pays chargé (' + pays.length + ')';
+            } catch (err) {
+                paysStatus.classList.add('err');
+                paysStatus.innerHTML = '<span class="dot"></span> impossible de charger la liste des pays — réessayez';
+                console.error(err);
+            }
+        }
+
+        // ---- 2. Charger les universités du pays choisi (Hipolabs API) ----
+        async function chargerUniversites(nomPays) {
+            sectionUnis.style.display = 'block';
+            sectionMessage.style.display = 'none';
+            submitBtn.disabled = true;
+            uniList.innerHTML = '';
+            uniNomInput.value = '';
+            uniSiteInput.value = '';
+            uniStatus.className = 'status-line';
+            uniStatus.innerHTML = '<span class="dot"></span> recherche des universités en ' + nomPays + '…';
+            stamp2.classList.add('active');
+            stamp3.classList.remove('active');
+
+            try {
+                const res = await fetch('https://universities.hipolabs.com/search?country=' + encodeURIComponent(nomPays));
+                if (!res.ok) throw new Error('Réponse API invalide');
+                const data = await res.json();
+
+                if (!data.length) {
+                    uniStatus.classList.add('err');
+                    uniStatus.innerHTML = '<span class="dot"></span> aucune université trouvée pour ce pays';
+                    return;
+                }
+
+                uniStatus.classList.add('ok');
+                uniStatus.innerHTML = '<span class="dot"></span> ' + data.length + ' université(s) trouvée(s)';
+
+                data.slice(0, 200).forEach((u, i) => {
+                    const item = document.createElement('label');
+                    item.className = 'uni-item';
+                    item.innerHTML =
+                        '<input type="radio" name="uni-radio" value="' + i + '">' +
+                        '<div><div class="uni-name">' + u.name + '</div>' +
+                        '<div class="uni-site">' + (u.web_pages && u.web_pages[0] ? u.web_pages[0] : '') + '</div></div>';
+
+                    item.addEventListener('click', () => {
+                        document.querySelectorAll('.uni-item').forEach(el => el.classList.remove('selected'));
+                        item.classList.add('selected');
+                        uniNomInput.value = u.name;
+                        uniSiteInput.value = (u.web_pages && u.web_pages[0]) || '';
+                        sectionMessage.style.display = 'block';
+                        submitBtn.disabled = false;
+                        stamp3.classList.add('active');
+                    });
+
+                    uniList.appendChild(item);
+                });
+            } catch (err) {
+                uniStatus.classList.add('err');
+                uniStatus.innerHTML = '<span class="dot"></span> impossible de charger les universités — réessayez';
+                console.error(err);
+            }
+        }
+
+        paysSelect.addEventListener('change', () => {
+            if (paysSelect.value) {
+                stamp1.classList.add('active');
+                chargerUniversites(paysSelect.value);
+            } else {
+                sectionUnis.style.display = 'none';
+                sectionMessage.style.display = 'none';
+                submitBtn.disabled = true;
+            }
+        });
+
+        // ---- 3. Soumission vers Google Sheets ----
+        // On soumet un vrai formulaire HTML (POST + iframe cible) plutôt qu'un fetch,
+        // ce qui évite les blocages CORS habituels avec les Web Apps Google Apps Script.
+        form.addEventListener('submit', (e) => {
+            if (GOOGLE_SCRIPT_URL.startsWith('COLLEZ_ICI')) {
+                e.preventDefault();
+                alert("Configurez d'abord GOOGLE_SCRIPT_URL avec l'URL de votre Web App Google Apps Script (voir le fichier fourni).");
+                return;
+            }
+            form.action = GOOGLE_SCRIPT_URL;
+            form.method = 'POST';
+            form.target = 'hidden_iframe';
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Transmission en cours…';
+        });
+
+        document.getElementById('hidden_iframe').addEventListener('load', () => {
+            // Se déclenche après le premier chargement à vide de l'iframe aussi ;
+            // on n'affiche la confirmation qu'après une vraie soumission.
+            if (submitBtn.textContent === 'Transmission en cours…') {
+                form.style.display = 'none';
+                confirmation.classList.add('show');
+            }
+        });
+
+        chargerPays();
+    </script>
+
+</body>
+
+</html>
