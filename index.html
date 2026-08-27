@@ -40,7 +40,6 @@
     width:100%;
     max-width:640px;
   }
-  /* ---- Cover / letterhead ---- */
   .cover{
     background:linear-gradient(160deg, var(--ink) 0%, var(--ink-2) 100%);
     border-radius:14px 14px 0 0;
@@ -98,8 +97,6 @@
     height:130px;
     opacity:0.9;
   }
-
-  /* ---- Perforation between cover and body ---- */
   .perf{
     height:0;
     border-top:2px dashed rgba(28,35,51,0.25);
@@ -117,8 +114,6 @@
   }
   .perf::before{left:-9px;}
   .perf::after{right:-9px;}
-
-  /* ---- Body / pages ---- */
   .pages{
     background:var(--paper);
     border:1px solid rgba(28,35,51,0.12);
@@ -146,7 +141,6 @@
     color:var(--burgundy);
     background:rgba(140,29,43,0.06);
   }
-
   section.block{
     margin-top:22px;
   }
@@ -164,7 +158,6 @@
     margin:0 0 16px;
     letter-spacing:0.02em;
   }
-
   .field{
     margin-bottom:16px;
   }
@@ -216,7 +209,6 @@
     gap:14px;
   }
   @media (max-width:520px){ .two-col{grid-template-columns:1fr;} }
-
   .status-line{
     font-family:'IBM Plex Mono', monospace;
     font-size:11.5px;
@@ -238,7 +230,6 @@
   .status-line.ok .dot{background:var(--ok);animation:none;}
   .status-line.err{color:var(--err);}
   .status-line.err .dot{background:var(--err);animation:none;}
-
   .uni-list{
     display:flex;
     flex-direction:column;
@@ -270,7 +261,6 @@
     border-color:var(--burgundy);
     background:rgba(140,29,43,0.06);
   }
-
   .submit-btn{
     width:100%;
     margin-top:26px;
@@ -292,7 +282,6 @@
     background:#9a9a9a;
     cursor:not-allowed;
   }
-
   .confirmation{
     display:none;
     margin-top:22px;
@@ -315,7 +304,6 @@
     font-size:13px;
     color:var(--text-muted);
   }
-
   .footnote{
     text-align:center;
     font-family:'IBM Plex Mono', monospace;
@@ -391,6 +379,7 @@
           </select>
         </div>
         <div id="pays-status" class="status-line"><span class="dot"></span> connexion au registre des pays…</div>
+        <button type="button" id="retry-pays-btn" class="submit-btn" style="display:none;background:var(--ink);margin-top:8px;">Réessayer le chargement des pays</button>
       </section>
 
       <section class="block" id="section-universites" style="display:none;">
@@ -399,6 +388,7 @@
 
         <div id="uni-status" class="status-line"></div>
         <div id="uni-list" class="uni-list"></div>
+        <button type="button" id="retry-uni-btn" class="submit-btn" style="display:none;background:var(--ink);margin-top:8px;">Réessayer le chargement des universités</button>
         <input type="hidden" id="universite-nom" name="Universite">
         <input type="hidden" id="universite-site" name="SiteUniversite">
       </section>
@@ -431,17 +421,18 @@
 <script>
   // ============================================================
   // CONFIGURATION — à remplacer par l'URL de votre Web App
-  // Google Apps Script (voir le fichier google-apps-script.js
-  // fourni séparément pour le code à déployer côté Google Sheets)
+  // Google Apps Script
   // ============================================================
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw95lIFA4m5aMRq_1qK14NbGueV01U7E6hnSw0zG2FR0s7TBvkUzhRf5-YV3LmRIHjteg/exec";
 
   const paysSelect = document.getElementById('pays');
   const paysStatus = document.getElementById('pays-status');
+  const retryPaysBtn = document.getElementById('retry-pays-btn');
   const sectionUnis = document.getElementById('section-universites');
   const sectionMessage = document.getElementById('section-message');
   const uniStatus = document.getElementById('uni-status');
   const uniList = document.getElementById('uni-list');
+  const retryUniBtn = document.getElementById('retry-uni-btn');
   const uniNomInput = document.getElementById('universite-nom');
   const uniSiteInput = document.getElementById('universite-site');
   const submitBtn = document.getElementById('submit-btn');
@@ -451,24 +442,62 @@
   const stamp3 = document.getElementById('stamp-3');
   const confirmation = document.getElementById('confirmation');
 
-  // ---- 1. Charger la liste des pays (countries.dev — gratuit, sans clé API) ----
-  async function chargerPays(){
-    try{
-      const res = await fetch('https://countries.dev/countries?fields=name,translations');
-      if(!res.ok) throw new Error('Réponse API invalide');
-      const data = await res.json();
+  // ============================================================
+  // SOURCES DE DONNÉES (reprises du code de ton ami — fiables)
+  // ============================================================
+  const COUNTRIES_JSON_URL =
+      "https://raw.githubusercontent.com/mledoze/countries/master/countries.json";
 
-      const pays = data.map(p => {
-        const t = p.translations || {};
-        const libelleFr = (t.fra && t.fra.common) || (t.fr && t.fr.common) || p.name;
-        return {
-          valeur: p.name,                                // utilisé pour interroger l'API universités
-          libelle: libelleFr
-        };
-      }).sort((a,b) => a.libelle.localeCompare(b.libelle, 'fr'));
+  const UNIVERSITIES_JSON_URL =
+      "https://raw.githubusercontent.com/Hipo/university-domains-list/master/world_universities_and_domains.json";
+
+  let countriesCache = null;
+  let universitiesCache = null;
+  let dernierPaysChoisi = ""; // valeur anglaise du pays, utilisée pour interroger les universités
+
+  async function getCountriesData(){
+    if (countriesCache) return countriesCache;
+    const response = await fetch(COUNTRIES_JSON_URL);
+    if (!response.ok) throw new Error("Impossible de charger les pays. Code : " + response.status);
+    countriesCache = await response.json();
+    return countriesCache;
+  }
+
+  async function getUniversitiesData(){
+    if (universitiesCache) return universitiesCache;
+    const response = await fetch(UNIVERSITIES_JSON_URL);
+    if (!response.ok) throw new Error("Impossible de charger les universités. Code : " + response.status);
+    universitiesCache = await response.json();
+    return universitiesCache;
+  }
+
+  // ---- 1. Charger la liste des pays ----
+  async function chargerPays(){
+    paysSelect.innerHTML = '<option value="">Chargement…</option>';
+    paysSelect.disabled = true;
+    retryPaysBtn.style.display = 'none';
+    paysStatus.className = 'status-line';
+    paysStatus.innerHTML = '<span class="dot"></span> connexion au registre des pays…';
+
+    sectionUnis.style.display = 'none';
+    sectionMessage.style.display = 'none';
+    submitBtn.disabled = true;
+
+    try{
+      const countries = await getCountriesData();
+
+      const listePays = countries
+        .map(country => ({
+          valeur: country.name.common, // nom anglais : sert à interroger la base des universités
+          libelle: (country.translations && country.translations.fra && country.translations.fra.common) || country.name.common
+        }))
+        .filter(p => p.valeur)
+        .sort((a, b) => a.libelle.localeCompare(b.libelle, 'fr'));
+
+      if (listePays.length === 0) throw new Error("Aucun pays trouvé.");
 
       paysSelect.innerHTML = '<option value="">— Sélectionnez un pays —</option>';
-      pays.forEach(p => {
+      listePays.forEach(p => {
         const opt = document.createElement('option');
         opt.value = p.valeur;
         opt.textContent = p.libelle;
@@ -477,50 +506,48 @@
 
       paysSelect.disabled = false;
       paysStatus.classList.add('ok');
-      paysStatus.innerHTML = '<span class="dot"></span> registre des pays chargé (' + pays.length + ')';
+      paysStatus.innerHTML = '<span class="dot"></span> registre des pays chargé (' + listePays.length + ')';
     }catch(err){
+      console.error('Erreur pays :', err);
       paysStatus.classList.add('err');
-      paysStatus.innerHTML = '<span class="dot"></span> impossible de charger la liste des pays — réessayez';
-      console.error(err);
+      paysStatus.innerHTML = '<span class="dot"></span> impossible de charger la liste des pays — ' + err.message;
+      paysSelect.innerHTML = '<option value="">— Erreur de chargement —</option>';
+      retryPaysBtn.style.display = 'inline-block';
     }
   }
 
+  retryPaysBtn.addEventListener('click', chargerPays);
+
   // ---- 2. Charger les universités du pays choisi ----
-  // Source : le jeu de données brut du projet Hipo/university-domains-list,
-  // servi en HTTPS par raw.githubusercontent.com (CORS ouvert, contrairement
-  // à l'API universities.hipolabs.com qui n'existe qu'en http:// et bloque
-  // en contenu mixte depuis une page https).
-  let toutesLesUniversites = null;
-
-  async function chargerJeuDeDonneesUniversites(){
-    if(toutesLesUniversites) return toutesLesUniversites;
-    const res = await fetch('https://raw.githubusercontent.com/Hipo/university-domains-list/master/world_universities_and_domains.json');
-    if(!res.ok) throw new Error('Réponse invalide');
-    toutesLesUniversites = await res.json();
-    return toutesLesUniversites;
-  }
-
-  async function chargerUniversites(nomPays){
+  async function chargerUniversites(nomPaysAnglais, libellePaysAffiche){
     sectionUnis.style.display = 'block';
     sectionMessage.style.display = 'none';
     submitBtn.disabled = true;
+    retryUniBtn.style.display = 'none';
     uniList.innerHTML = '';
     uniNomInput.value = '';
     uniSiteInput.value = '';
     uniStatus.className = 'status-line';
-    uniStatus.innerHTML = '<span class="dot"></span> recherche des universités en ' + nomPays + '…';
+    uniStatus.innerHTML = '<span class="dot"></span> recherche des universités en ' + libellePaysAffiche + '…';
     stamp2.classList.add('active');
     stamp3.classList.remove('active');
 
     try{
-      const toutes = await chargerJeuDeDonneesUniversites();
-      const data = toutes.filter(u => u.country === nomPays);
+      const universities = await getUniversitiesData();
+      const paysLower = nomPaysAnglais.toLowerCase();
 
-      if(!data.length){
+      const data = universities.filter(u =>
+        u.country && u.country.toLowerCase() === paysLower
+      );
+
+      if (!data.length){
         uniStatus.classList.add('err');
         uniStatus.innerHTML = '<span class="dot"></span> aucune université trouvée pour ce pays';
+        retryUniBtn.style.display = 'inline-block';
         return;
       }
+
+      data.sort((a, b) => a.name.localeCompare(b.name));
 
       uniStatus.classList.add('ok');
       uniStatus.innerHTML = '<span class="dot"></span> ' + data.length + ' université(s) trouvée(s)';
@@ -546,16 +573,26 @@
         uniList.appendChild(item);
       });
     }catch(err){
+      console.error('Erreur universités :', err);
       uniStatus.classList.add('err');
-      uniStatus.innerHTML = '<span class="dot"></span> impossible de charger les universités — réessayez';
-      console.error(err);
+      uniStatus.innerHTML = '<span class="dot"></span> impossible de charger les universités — ' + err.message;
+      retryUniBtn.style.display = 'inline-block';
     }
   }
 
+  retryUniBtn.addEventListener('click', () => {
+    if (dernierPaysChoisi){
+      const libelle = paysSelect.options[paysSelect.selectedIndex].text;
+      chargerUniversites(dernierPaysChoisi, libelle);
+    }
+  });
+
   paysSelect.addEventListener('change', () => {
-    if(paysSelect.value){
+    dernierPaysChoisi = paysSelect.value;
+    if (dernierPaysChoisi){
       stamp1.classList.add('active');
-      chargerUniversites(paysSelect.value);
+      const libelle = paysSelect.options[paysSelect.selectedIndex].text;
+      chargerUniversites(dernierPaysChoisi, libelle);
     }else{
       sectionUnis.style.display = 'none';
       sectionMessage.style.display = 'none';
@@ -564,12 +601,10 @@
   });
 
   // ---- 3. Soumission vers Google Sheets ----
-  // On soumet un vrai formulaire HTML (POST + iframe cible) plutôt qu'un fetch,
-  // ce qui évite les blocages CORS habituels avec les Web Apps Google Apps Script.
   form.addEventListener('submit', (e) => {
     if(GOOGLE_SCRIPT_URL.startsWith('COLLEZ_ICI')){
       e.preventDefault();
-      alert("Configurez d'abord GOOGLE_SCRIPT_URL avec l'URL de votre Web App Google Apps Script (voir le fichier fourni).");
+      alert("Configurez d'abord GOOGLE_SCRIPT_URL avec l'URL de votre Web App Google Apps Script.");
       return;
     }
     form.action = GOOGLE_SCRIPT_URL;
@@ -580,8 +615,6 @@
   });
 
   document.getElementById('hidden_iframe').addEventListener('load', () => {
-    // Se déclenche après le premier chargement à vide de l'iframe aussi ;
-    // on n'affiche la confirmation qu'après une vraie soumission.
     if(submitBtn.textContent === 'Transmission en cours…'){
       form.style.display = 'none';
       confirmation.classList.add('show');
