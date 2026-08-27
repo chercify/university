@@ -485,7 +485,21 @@
     }
   }
 
-  // ---- 2. Charger les universités du pays choisi (Hipolabs API) ----
+  // ---- 2. Charger les universités du pays choisi ----
+  // Source : le jeu de données brut du projet Hipo/university-domains-list,
+  // servi en HTTPS par raw.githubusercontent.com (CORS ouvert, contrairement
+  // à l'API universities.hipolabs.com qui n'existe qu'en http:// et bloque
+  // en contenu mixte depuis une page https).
+  let toutesLesUniversites = null;
+
+  async function chargerJeuDeDonneesUniversites(){
+    if(toutesLesUniversites) return toutesLesUniversites;
+    const res = await fetch('https://raw.githubusercontent.com/Hipo/university-domains-list/master/world_universities_and_domains.json');
+    if(!res.ok) throw new Error('Réponse invalide');
+    toutesLesUniversites = await res.json();
+    return toutesLesUniversites;
+  }
+
   async function chargerUniversites(nomPays){
     sectionUnis.style.display = 'block';
     sectionMessage.style.display = 'none';
@@ -499,9 +513,8 @@
     stamp3.classList.remove('active');
 
     try{
-      const res = await fetch('https://universities.hipolabs.com/search?country=' + encodeURIComponent(nomPays));
-      if(!res.ok) throw new Error('Réponse API invalide');
-      const data = await res.json();
+      const toutes = await chargerJeuDeDonneesUniversites();
+      const data = toutes.filter(u => u.country === nomPays);
 
       if(!data.length){
         uniStatus.classList.add('err');
