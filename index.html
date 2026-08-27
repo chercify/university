@@ -378,7 +378,7 @@
             <option value="">Chargement du registre des pays…</option>
           </select>
         </div>
-        <div id="pays-status" class="status-line"><span class="dot"></span> connexion au registre des pays…</div>
+        <div id="pays-status" class="status-line"></div>
         <button type="button" id="retry-pays-btn" class="submit-btn" style="display:none;background:var(--ink);margin-top:8px;">Réessayer le chargement des pays</button>
       </section>
 
@@ -477,7 +477,7 @@
     paysSelect.disabled = true;
     retryPaysBtn.style.display = 'none';
     paysStatus.className = 'status-line';
-    paysStatus.innerHTML = '<span class="dot"></span> connexion au registre des pays…';
+    paysStatus.innerHTML = '';
 
     sectionUnis.style.display = 'none';
     sectionMessage.style.display = 'none';
@@ -505,8 +505,7 @@
       });
 
       paysSelect.disabled = false;
-      paysStatus.classList.add('ok');
-      paysStatus.innerHTML = '<span class="dot"></span> registre des pays chargé (' + listePays.length + ')';
+      paysStatus.innerHTML = '';
     }catch(err){
       console.error('Erreur pays :', err);
       paysStatus.classList.add('err');
@@ -528,7 +527,7 @@
     uniNomInput.value = '';
     uniSiteInput.value = '';
     uniStatus.className = 'status-line';
-    uniStatus.innerHTML = '<span class="dot"></span> recherche des universités en ' + libellePaysAffiche + '…';
+    uniStatus.innerHTML = '';
     stamp2.classList.add('active');
     stamp3.classList.remove('active');
 
@@ -549,8 +548,7 @@
 
       data.sort((a, b) => a.name.localeCompare(b.name));
 
-      uniStatus.classList.add('ok');
-      uniStatus.innerHTML = '<span class="dot"></span> ' + data.length + ' université(s) trouvée(s)';
+      uniStatus.innerHTML = '';
 
       data.slice(0, 200).forEach((u, i) => {
         const item = document.createElement('label');
